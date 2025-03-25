@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webex Contact Manager</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            border: 1px solid #ddd;
+            margin-bottom: 5px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        button {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        #contactForm {
+            margin-top:20px;
+        }
+
+        #sessionForm {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Contacts</h1>
+    <ul id="contactsList"></ul>
+
+    <div id="contactForm">
+        <h2>Add/Edit Contact</h2>
+        <input type="hidden" id="contactId">
+        <label for="contactName">Name:</label>
+        <input type="text" id="contactName"><br><br>
+        <label for="contactMsisdn">MSISDN:</label>
+        <input type="text" id="contactMsisdn"><br><br>
+        <button onclick="saveContact()">Save Contact</button>
+    </div>
+
+    <div id="sessionForm">
+        <h2>Add/Edit Session</h2>
+        <input type="hidden" id="sessionId">
+        <label for="sessionChannel">Channel:</label>
+        <input type="text" id="sessionChannel"><br><br>
+        <label for="sessionChannelId">Channel ID:</label>
+        <input type="text" id="sessionChannelId"><br><br>
+        <label for="sessionContactId">Contact ID:</label>
+        <input type="number" id="sessionContactId"><br><br>
+        <button onclick="saveSession()">Save Session</button>
+    </div>
+
+    <script>
+        const contactsList = document.getElementById('contactsList');
+        const contactIdInput = document.getElementById('contactId');
+        const contactNameInput = document.getElementById('contactName');
+        const contactMsisdnInput = document.getElementById('contactMsisdn');
+
+        const sessionIdInput = document.getElementById('sessionId');
+        const sessionChannelInput = document.getElementById('sessionChannel');
+        const sessionChannelIdInput = document.getElementById('sessionChannelId');
+        const sessionContactIdInput = document.getElementById('sessionContactId');
+
+        function fetchContacts() {
+            fetch('/contacts')
+                .then(response => response.json())
+                .then(data => {
+                    contactsList.innerHTML = '';
+                    data.forEach(contact => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span>${contact.name} - ${contact.msisdn}</span>
+                            <div>
+                                <button onclick="editContact(${contact.id})">Edit</button>
+                                <button onclick="deleteContact(${contact.id})">Delete</button>
+                                <button onclick="initiateConversation(${contact.id}, 'sms')">SMS</button>
+                                <button onclick="initiateConversation(${contact.id}, 'whatsapp')">WhatsApp</button>
+                            </div>
+                        `;
+                        contactsList.appendChild(li);
+                    });
+                });
+        }
+
+        function saveContact() {
+            const contact = {
+                name: contactNameInput.value,
+                msisdn: contactMsisdnInput.value
+            };
+            const method = contactIdInput.value ? 'PUT' : 'POST';
+            const url = contactIdInput.value ? `/contacts/${contactIdInput.value}` : '/contacts';
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(contact)
+            })
+            .then(()=> {
+              fetchContacts();
+              clearContactForm();
+            });
+        }
+
+        function editContact(id) {
+            fetch(`/contacts/${id}`)
+                .then(response => response.json())
+                .then(contact => {
+                    contactIdInput.value = contact.id;
+                    contactNameInput.value = contact.name;
+                    contactMsisdnInput.value = contact.msisdn;
+                });
+        }
+
+        function deleteContact(id) {
+            fetch(`/contacts/${id}`, { method: 'DELETE' })
+                .then(() => fetchContacts());
+        }
+
+        function initiateConversation(contactId, channel) {
+            fetch('/trigger_conversation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contactId: contactId, channel: channel })
+            });
+        }
+
+        function saveSession() {
+            const session = {
+                customerChannel: sessionChannelInput.value,
+                customerChannelId: sessionChannelIdInput.value,
+                contact_id: sessionContactIdInput.value
+            };
+            const method = sessionIdInput.value ? 'PUT' : 'POST';
+            const url = sessionIdInput.value ? `/sessions/${sessionIdInput.value}` : '/sessions';
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(session)
+            })
+            .then(()=> {
+              fetchSessions();
+              clearSessionForm();
+            });
+        }
+
+        function clearContactForm(){
+          contactIdInput.value = '';
+          contactNameInput.value = '';
+          contactMsisdnInput.value = '';
+        }
+
+        function clearSessionForm(){
+          sessionIdInput.value = '';
+          sessionChannelInput.value = '';
+          sessionChannelIdInput.value = '';
+          sessionContactIdInput.value = '';
+        }
+
+        function fetchSessions(){
+          fetch('/sessions').then(response=>response.json()).then(data=>console.log("Sessions:", data));
+        }
+
+        fetchContacts();
+    </script>
+</body>
+</html>
