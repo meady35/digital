@@ -136,7 +136,7 @@ def handle_session(session_id):
 def trigger_conversation():
     data = request.get_json()
     try:
-        response = requests.post(WEBEX_CONNECT_WEBHOOK_URL, json=data)
+        response = requests.post(https://hooks.us.webexconnect.io/events/H8UQCKJS02, json=data)
         response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
         return jsonify({'message': 'Conversation trigger successful'}), 200
     except requests.exceptions.RequestException as e:
